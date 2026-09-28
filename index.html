@@ -1,34 +1,288 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta property="og:image" content="https://example.com/image.jpg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <title>Image</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000;
-        }
-        img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta property="og:image" content="" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <title>Ad Gallery</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+    }
+    .upload-box {
+      background: rgba(255,255,255,0.15);
+      border: 2px dashed rgba(255,255,255,0.7);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 30px;
+      backdrop-filter: blur(8px);
+    }
+    .upload-box.dragover {
+      background: rgba(255,255,255,0.22);
+      border-color: #fff;
+    }
+    .upload-box input[type="file"] {
+      display: none;
+    }
+    .upload-btn {
+      display: inline-block;
+      background: #fff;
+      color: #333;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 12px;
+      font-weight: 600;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.12);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    .card img {
+      display: block;
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+    }
+    .card-body {
+      padding: 15px;
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      word-break: break-word;
+    }
+    .meta {
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+    .actions button {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .preview {
+      background: #fff;
+      color: #333;
+    }
+    .delete {
+      background: #ff6b6b;
+      color: white;
+    }
+    .empty {
+      display: block;
+      text-align: center;
+      padding: 30px 0;
+      opacity: 0.9;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 999;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      position: relative;
+      background: #fff;
+      border-radius: 12px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow: auto;
+      padding: 0;
+    }
+    .modal-content img {
+      display: block;
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+    }
+    .close {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <img src="image.jpg" alt="">
+  <div class="container">
+    <h1>Ad Gallery</h1>
+
+    <div id="uploadBox" class="upload-box">
+      <p>Drag and drop images here or click to upload.</p>
+      <input id="fileInput" type="file" accept="image/*" multiple />
+      <button class="upload-btn" type="button" onclick="document.getElementById('fileInput').click()">
+        Choose Images
+      </button>
+    </div>
+
+    <div id="gallery" class="gallery"></div>
+    <div id="emptyState" class="empty">No images yet. Upload your first ad image.</div>
+  </div>
+
+  <div id="modal" class="modal" aria-label="Image preview">
+    <div class="modal-content">
+      <button class="close" type="button" onclick="closeModal()">×</button>
+      <img id="modalImage" src="" alt="Preview" />
+    </div>
+  </div>
+
+  <script>
+    const gallery = document.getElementById('gallery');
+    const emptyState = document.getElementById('emptyState');
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const modal = document.getElementById('modal');
+    const modalImage = document.getElementById('modalImage');
+
+    let images = JSON.parse(localStorage.getItem('adGalleryImages') || '[]');
+
+    uploadBox.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+      uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', (event) => {
+      event.preventDefault();
+      uploadBox.classList.remove('dragover');
+      handleFiles(event.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', (event) => {
+      handleFiles(event.target.files);
+    });
+
+    function handleFiles(files) {
+      Array.from(files).forEach((file) => {
+        if (!file.type.startsWith('image/')) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            const record = {
+              id: Date.now() + Math.random(),
+              name: file.name,
+              src: e.target.result,
+              width: img.width,
+              height: img.height
+            };
+            images.unshift(record);
+            localStorage.setItem('adGalleryImages', JSON.stringify(images));
+            renderGallery();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      fileInput.value = '';
+    }
+
+    function renderGallery() {
+      gallery.innerHTML = '';
+
+      if (images.length === 0) {
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+
+      images.forEach((image) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        card.innerHTML = `
+          <img src="${image.src}" alt="${image.name}" />
+          <div class="card-body">
+            <h3>${image.name}</h3>
+            <div class="meta">${image.width} × ${image.height}px</div>
+            <div class="actions">
+              <button class="preview" type="button" onclick="openModal('${image.src}')">Preview</button>
+              <button class="delete" type="button" onclick="deleteImage('${image.id}')">Delete</button>
+            </div>
+          </div>
+        `;
+
+        gallery.appendChild(card);
+      });
+    }
+
+    function openModal(src) {
+      modalImage.src = src;
+      modal.classList.add('active');
+    }
+
+    function closeModal() {
+      modal.classList.remove('active');
+      modalImage.src = '';
+    }
+
+    function deleteImage(id) {
+      images = images.filter((img) => String(img.id) !== String(id));
+      localStorage.setItem('adGalleryImages', JSON.stringify(images));
+      renderGallery();
+    }
+
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) closeModal();
+    });
+
+    renderGallery();
+  </script>
 </body>
 </html>
